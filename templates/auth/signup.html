@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Create Account{% endblock %}
+
+{% block content %}
+<div class="auth-card-wrapper">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <i class="bi bi-shield-lock-fill"></i>
+      <h1>VAULT</h1>
+      <p class="auth-subtitle">Create Your Vault</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.signup') }}" class="auth-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+
+      <div class="form-floating mb-3">
+        <input type="text" class="form-control vault-input" id="username"
+               name="username" placeholder="Username" required autofocus
+               pattern="[A-Za-z0-9_]{3,64}" title="3–64 alphanumeric characters or underscores" />
+        <label for="username"><i class="bi bi-person me-1"></i>Username</label>
+      </div>
+
+      <div class="form-floating mb-3">
+        <input type="email" class="form-control vault-input" id="email"
+               name="email" placeholder="Email" required />
+        <label for="email"><i class="bi bi-envelope me-1"></i>Email Address</label>
+      </div>
+
+      <div class="form-floating mb-3 position-relative">
+        <input type="password" class="form-control vault-input" id="password"
+               name="password" placeholder="Password" required minlength="8" />
+        <label for="password"><i class="bi bi-lock me-1"></i>Password (min 8 chars)</label>
+        <button type="button" class="btn btn-icon pass-toggle" onclick="togglePass('password')">
+          <i class="bi bi-eye" id="password-eye"></i>
+        </button>
+      </div>
+
+      <div class="form-floating mb-4">
+        <input type="password" class="form-control vault-input" id="confirm_password"
+               name="confirm_password" placeholder="Confirm Password" required />
+        <label for="confirm_password"><i class="bi bi-lock-fill me-1"></i>Confirm Password</label>
+      </div>
+
+      <!-- Strength indicator -->
+      <div class="password-strength mb-4" id="strengthBar">
+        <div class="strength-fill" id="strengthFill"></div>
+      </div>
+
+      <button type="submit" class="btn btn-vault w-100 mb-3">
+        <i class="bi bi-shield-plus me-2"></i>Create Vault
+      </button>
+
+      <p class="text-center text-muted small">
+        Already have an account? <a href="{{ url_for('auth.login') }}" class="vault-link">Log in</a>
+      </p>
+    </form>
+  </div>
+
+  <div class="auth-ambient"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Password strength meter
+  const pwInput = document.getElementById('password');
+  const fill    = document.getElementById('strengthFill');
+  pwInput.addEventListener('input', () => {
+    const val = pwInput.value;
+    let score = 0;
+    if (val.length >= 8)  score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    const pct   = (score / 4) * 100;
+    const color = score <= 1 ? '#ef4444' : score <= 2 ? '#f59e0b' : score <= 3 ? '#3b82f6' : '#10b981';
+    fill.style.width = pct + '%';
+    fill.style.background = color;
+  });
+</script>
+{% endblock %}

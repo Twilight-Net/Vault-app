@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-card-wrapper">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <i class="bi bi-shield-lock-fill"></i>
+      <h1>VAULT</h1>
+      <p class="auth-subtitle">Personal Secure Vault</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form" novalidate>
+      <!-- CSRF token hidden input if Flask-WTF available -->
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+
+      <div class="form-floating mb-3">
+        <input type="text" class="form-control vault-input" id="identifier"
+               name="identifier" placeholder="Username or Email" required autofocus />
+        <label for="identifier"><i class="bi bi-person me-1"></i>Username or Email</label>
+      </div>
+
+      <div class="form-floating mb-4 position-relative">
+        <input type="password" class="form-control vault-input" id="password"
+               name="password" placeholder="Password" required />
+        <label for="password"><i class="bi bi-lock me-1"></i>Password</label>
+        <button type="button" class="btn btn-icon pass-toggle" onclick="togglePass('password')">
+          <i class="bi bi-eye" id="password-eye"></i>
+        </button>
+      </div>
+
+      <button type="submit" class="btn btn-vault w-100 mb-3">
+        <i class="bi bi-unlock-fill me-2"></i>Unlock Vault
+      </button>
+
+      <p class="text-center text-muted small">
+        No account? <a href="{{ url_for('auth.signup') }}" class="vault-link">Create one</a>
+      </p>
+    </form>
+  </div>
+
+  <div class="auth-ambient"></div>
+</div>
+{% endblock %}
