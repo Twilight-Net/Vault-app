@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Links{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title"><i class="bi bi-link-45deg me-2 text-teal"></i>Links</h2>
+    <p class="page-subtitle">{{ links|length }} saved link{{ 's' if links|length != 1 }}</p>
+  </div>
+  <button class="btn btn-vault" data-bs-toggle="modal" data-bs-target="#newLinkModal">
+    <i class="bi bi-plus-lg me-2"></i>Save Link
+  </button>
+</div>
+
+<!-- Tag Filter -->
+{% if all_tags %}
+<div class="filter-tabs mb-3">
+  <a href="{{ url_for('links.index') }}" class="filter-tab {% if not active_tag %}active{% endif %}">All</a>
+  {% for tag in all_tags %}
+  <a href="{{ url_for('links.index', tag=tag) }}"
+     class="filter-tab {% if active_tag == tag %}active{% endif %}">{{ tag }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if links %}
+<div class="links-list">
+  {% for lk in links %}
+  <div class="link-card">
+    <div class="link-favicon">
+      <img src="https://www.google.com/s2/favicons?domain={{ lk.url }}&sz=32"
+           onerror="this.src=''" alt="" loading="lazy" />
+    </div>
+    <div class="link-info">
+      <a href="{{ lk.url }}" target="_blank" rel="noopener noreferrer" class="link-title">
+        {{ lk.title }}<i class="bi bi-box-arrow-up-right ms-1 small opacity-50"></i>
+      </a>
+      <span class="link-url text-truncate">{{ lk.url }}</span>
+      {% if lk.description %}
+        <span class="link-desc">{{ lk.description }}</span>
+      {% endif %}
+      <div class="mt-1">
+        {% if lk.tags %}
+          {% for tag in lk.tags.split(',') %}
+            {% if tag.strip() %}<span class="tag-badge">{{ tag.strip() }}</span>{% endif %}
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+    <div class="link-actions">
+      <button class="btn btn-icon btn-sm" title="Edit"
+              onclick="openEditLink({{ lk.id }}, '{{ lk.title|e }}', '{{ lk.url|e }}', '{{ lk.description|e }}', '{{ lk.tags|e }}')">
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form method="POST" action="{{ url_for('links.delete', link_id=lk.id) }}" class="d-inline"
+            onsubmit="return confirm('Delete this link?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+        <button type="submit" class="btn btn-icon btn-sm btn-danger-ghost"><i class="bi bi-trash3"></i></button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-bookmark-plus"></i>
+  <h5>No links saved</h5>
+  <p class="text-muted">Bookmark your favourite URLs for quick access.</p>
+  <button class="btn btn-vault mt-2" data-bs-toggle="modal" data-bs-target="#newLinkModal">Save Link</button>
+</div>
+{% endif %}
+
+<!-- New Link Modal -->
+<div class="modal fade" id="newLinkModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content vault-modal">
+      <div class="modal-header border-0">
+        <h5 class="modal-title"><i class="bi bi-link-45deg me-2"></i>Save Link</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('links.new') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small text-muted">Title *</label>
+            <input type="text" class="form-control vault-input" name="title" required placeholder="My favourite site" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted">URL *</label>
+            <input type="text" class="form-control vault-input" name="url" required placeholder="https://example.com" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted">Description</label>
+            <input type="text" class="form-control vault-input" name="description" placeholder="Short description" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted">Tags</label>
+            <input type="text" class="form-control vault-input" name="tags" placeholder="work, tools, reference" />
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-vault"><i class="bi bi-floppy me-2"></i>Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Link Modal -->
+<div class="modal fade" id="editLinkModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content vault-modal">
+      <div class="modal-header border-0">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Link</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="editLinkForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+        <div class="modal-body">
+          <div class="mb-3"><input type="text" class="form-control vault-input" name="title" id="editTitle" placeholder="Title" required /></div>
+          <div class="mb-3"><input type="text" class="form-control vault-input" name="url" id="editUrl" placeholder="URL" required /></div>
+          <div class="mb-3"><input type="text" class="form-control vault-input" name="description" id="editDesc" placeholder="Description" /></div>
+          <div class="mb-3"><input type="text" class="form-control vault-input" name="tags" id="editTags" placeholder="Tags" /></div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-vault"><i class="bi bi-floppy me-2"></i>Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function openEditLink(id, title, url, desc, tags) {
+    document.getElementById('editTitle').value = title;
+    document.getElementById('editUrl').value   = url;
+    document.getElementById('editDesc').value  = desc;
+    document.getElementById('editTags').value  = tags;
+    document.getElementById('editLinkForm').action = `/links/${id}/edit`;
+    new bootstrap.Modal(document.getElementById('editLinkModal')).show();
+  }
+</script>
+{% endblock %}

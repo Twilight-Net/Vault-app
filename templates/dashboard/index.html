@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Overview</h2>
+    <p class="page-subtitle">Welcome back, <strong>{{ current_user.username }}</strong></p>
+  </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  {% set stat_data = [
+    ('files',     stats.files,     'folder2-open',  'Files',     url_for('files.index'),     'stat-blue'),
+    ('notes',     stats.notes,     'journal-text',  'Notes',     url_for('notes.index'),     'stat-purple'),
+    ('links',     stats.links,     'link-45deg',    'Links',     url_for('links.index'),     'stat-teal'),
+    ('passwords', stats.passwords, 'key-fill',      'Passwords', url_for('passwords.index'), 'stat-amber'),
+  ] %}
+  {% for key, count, icon, label, href, cls in stat_data %}
+  <div class="col-6 col-md-3">
+    <a href="{{ href }}" class="stat-card {{ cls }} text-decoration-none">
+      <div class="stat-icon"><i class="bi bi-{{ icon }}"></i></div>
+      <div class="stat-count">{{ count }}</div>
+      <div class="stat-label">{{ label }}</div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-3">
+  <!-- Recent Files -->
+  <div class="col-lg-6">
+    <div class="vault-card">
+      <div class="vault-card-header">
+        <span><i class="bi bi-folder2-open me-2 text-blue"></i>Recent Files</span>
+        <a href="{{ url_for('files.index') }}" class="btn btn-sm btn-ghost">View all</a>
+      </div>
+      <div class="vault-card-body p-0">
+        {% if recent_files %}
+          <ul class="item-list">
+            {% for f in recent_files %}
+            <li class="item-row">
+              <div class="item-icon file-icon-{{ f.file_type.split('/')[0] }}">
+                <i class="bi bi-{% if f.is_image %}image{% elif f.is_video %}play-circle{% elif 'pdf' in f.file_type %}file-pdf{% else %}file-earmark{% endif %}"></i>
+              </div>
+              <div class="item-info">
+                <span class="item-name">{{ f.original_name }}</span>
+                <span class="item-meta">{{ f.size_human }} · {{ f.uploaded_at.strftime('%b %d, %Y') }}</span>
+              </div>
+              <a href="{{ url_for('files.download', file_id=f.id) }}" class="btn btn-icon btn-sm">
+                <i class="bi bi-download"></i>
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="empty-state-sm">
+            <i class="bi bi-folder-plus"></i>
+            <p>No files yet</p>
+            <a href="{{ url_for('files.index') }}" class="btn btn-sm btn-vault-outline">Upload Files</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Notes -->
+  <div class="col-lg-6">
+    <div class="vault-card">
+      <div class="vault-card-header">
+        <span><i class="bi bi-journal-text me-2 text-purple"></i>Recent Notes</span>
+        <a href="{{ url_for('notes.index') }}" class="btn btn-sm btn-ghost">View all</a>
+      </div>
+      <div class="vault-card-body p-0">
+        {% if recent_notes %}
+          <ul class="item-list">
+            {% for n in recent_notes %}
+            <li class="item-row">
+              <div class="item-icon note-icon">
+                <i class="bi bi-journal"></i>
+              </div>
+              <div class="item-info">
+                <span class="item-name">{{ n.title }}</span>
+                <span class="item-meta">{{ n.updated_at.strftime('%b %d, %Y') }}
+                  {% if n.tags %}· {{ n.tags }}{% endif %}
+                </span>
+              </div>
+              <a href="{{ url_for('notes.view', note_id=n.id) }}" class="btn btn-icon btn-sm">
+                <i class="bi bi-arrow-right"></i>
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="empty-state-sm">
+            <i class="bi bi-journal-plus"></i>
+            <p>No notes yet</p>
+            <a href="{{ url_for('notes.new') }}" class="btn btn-sm btn-vault-outline">New Note</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

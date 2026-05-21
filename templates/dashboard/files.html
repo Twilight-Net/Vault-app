@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Files{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title"><i class="bi bi-folder2-open me-2 text-blue"></i>Files</h2>
+    <p class="page-subtitle">{{ files|length }} file{{ 's' if files|length != 1 }}</p>
+  </div>
+  <button class="btn btn-vault" onclick="document.getElementById('fileInput').click()">
+    <i class="bi bi-cloud-upload me-2"></i>Upload
+  </button>
+</div>
+
+<!-- Upload Drop Zone -->
+<div class="drop-zone mb-4" id="dropZone">
+  <form method="POST" action="{{ url_for('files.upload') }}"
+        enctype="multipart/form-data" id="uploadForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+    <input type="file" id="fileInput" name="files" multiple class="d-none"
+           onchange="document.getElementById('uploadForm').submit()" />
+    <i class="bi bi-cloud-arrow-up drop-icon"></i>
+    <p class="mb-1">Drag & drop files here</p>
+    <p class="text-muted small">Max 50 MB per file · Images, Videos, PDFs, Docs, Archives</p>
+  </form>
+</div>
+
+<!-- Filter Tabs -->
+<div class="filter-tabs mb-3">
+  <a href="{{ url_for('files.index') }}" class="filter-tab {% if not active_type %}active{% endif %}">All</a>
+  <a href="{{ url_for('files.index', type='image') }}" class="filter-tab {% if active_type=='image' %}active{% endif %}">
+    <i class="bi bi-image me-1"></i>Images</a>
+  <a href="{{ url_for('files.index', type='video') }}" class="filter-tab {% if active_type=='video' %}active{% endif %}">
+    <i class="bi bi-play-circle me-1"></i>Videos</a>
+  <a href="{{ url_for('files.index', type='doc') }}"   class="filter-tab {% if active_type=='doc' %}active{% endif %}">
+    <i class="bi bi-file-earmark-text me-1"></i>Docs</a>
+</div>
+
+<!-- File Grid -->
+{% if files %}
+<div class="file-grid" id="fileGrid">
+  {% for f in files %}
+  <div class="file-card" data-name="{{ f.original_name.lower() }}">
+    <!-- Preview Area -->
+    <div class="file-preview" onclick="openPreview('{{ url_for('files.preview', file_id=f.id) }}','{{ f.file_type }}','{{ f.original_name|e }}')">
+      {% if f.is_image %}
+        <img src="{{ url_for('files.preview', file_id=f.id) }}" alt="{{ f.original_name }}" loading="lazy" />
+      {% elif f.is_video %}
+        <div class="file-preview-icon text-teal"><i class="bi bi-play-circle-fill"></i></div>
+      {% elif 'pdf' in f.file_type %}
+        <div class="file-preview-icon text-red"><i class="bi bi-file-pdf-fill"></i></div>
+      {% elif 'word' in f.file_type or 'document' in f.file_type %}
+        <div class="file-preview-icon text-blue"><i class="bi bi-file-word-fill"></i></div>
+      {% elif 'zip' in f.file_type or 'tar' in f.file_type %}
+        <div class="file-preview-icon text-amber"><i class="bi bi-file-zip-fill"></i></div>
+      {% else %}
+        <div class="file-preview-icon text-muted"><i class="bi bi-file-earmark-fill"></i></div>
+      {% endif %}
+    </div>
+
+    <!-- File Meta -->
+    <div class="file-meta">
+      <span class="file-name" title="{{ f.original_name }}">{{ f.original_name }}</span>
+      <span class="file-size">{{ f.size_human }}</span>
+    </div>
+
+    <!-- Actions -->
+    <div class="file-actions">
+      <a href="{{ url_for('files.download', file_id=f.id) }}" class="btn btn-icon btn-sm" title="Download">
+        <i class="bi bi-download"></i>
+      </a>
+      <form method="POST" action="{{ url_for('files.delete', file_id=f.id) }}" class="d-inline"
+            onsubmit="return confirm('Delete {{ f.original_name|e }}?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+        <button type="submit" class="btn btn-icon btn-sm btn-danger-ghost" title="Delete">
+          <i class="bi bi-trash3"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-folder2"></i>
+  <h5>No files uploaded yet</h5>
+  <p class="text-muted">Drop files above or click Upload to get started.</p>
+</div>
+{% endif %}
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content vault-modal">
+      <div class="modal-header border-0">
+        <h6 class="modal-title" id="previewTitle"></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center p-2" id="previewBody"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Drag & drop
+  const zone = document.getElementById('dropZone');
+  const form = document.getElementById('uploadForm');
+  const inp  = document.getElementById('fileInput');
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    inp.files = e.dataTransfer.files;
+    form.submit();
+  });
+
+  // Preview modal
+  function openPreview(url, type, name) {
+    document.getElementById('previewTitle').textContent = name;
+    const body = document.getElementById('previewBody');
+    if (type.startsWith('image/')) {
+      body.innerHTML = `<img src="${url}" class="img-fluid rounded" style="max-height:80vh" />`;
+    } else if (type.startsWith('video/')) {
+      body.innerHTML = `<video src="${url}" controls class="w-100 rounded" style="max-height:80vh"></video>`;
+    } else {
+      body.innerHTML = `<div class="py-5 text-muted"><i class="bi bi-file-earmark fs-1"></i><p class="mt-3">Preview not available</p></div>`;
+    }
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+  }
+
+  // Local file name filter
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchBox = document.getElementById('globalSearch');
+    if (!searchBox) return;
+    // File-level client filter
+    const cards = document.querySelectorAll('.file-card');
+    document.getElementById('globalSearch').addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      cards.forEach(c => {
+        c.style.display = c.dataset.name.includes(q) ? '' : 'none';
+      });
+    });
+  });
+</script>
+{% endblock %}
